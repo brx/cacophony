@@ -11,90 +11,84 @@ import glib
 
 import pudgy
 
-class CacoDict(object):
+__author__ = "brx"
+__copyright__ = "Copyright 2010, brx"
+__license__ = "GPLv3"
+
+class CacoGraph(object):
+   def __init__(self, buddies = None):
+      self.edges = {}
+      for buddy in buddies: self.add_buddy(buddy)
+
+   def add_buddy(self, buddy): self.edges[buddy] = set()
+
+   def link_buddy(self, buddy_from, buddy_to): self.edges[buddy_from].add(buddy_to)
+   def unlink_buddy(self, buddy_from, buddy_to): self.edges[buddy_from].remove(buddy_to)
+
+   def get_out_edges(self, buddy): return self.edges.get(buddy, set())
+
+class CacoController(object):
    def __init__(self):
-      self.link_dict = {}
-      self.buddy_assoc = []
+      self.pudgy = pudgy.Pudgy(self._process_msg)
+      self.index_map = list(self.pudgy.get_buddies())
+      self.graph = CacoGraph(self.index_map)
 
-   def add_buddy(self, buddy):
-      self.link_dict[buddy] = set()
-      self.buddy_assoc.append(buddy)
+   def _link(self, idx_from, idx_to):
+      self.graph.link_buddy(self.index_map[idx_from-1], self.index_map[idx_to-1])
 
-   def link_buddy(self, buddy_from, buddy_to):
-      self.link_dict[buddy_from].add(buddy_to)
-
-   def unlink_buddy(self, buddy_from, buddy_to):
-      self.link_dict[buddy_from].remove(buddy_to)
-
-class Cacophony(object):
-   def __init__(self):
-      self.pudgy = pudgy.Pudgy(self.process_msg)
-
-      self._init_caco()
-      self._init_poll()
-
-      self.main_loop = glib.MainLoop()
-      glib.idle_add(self.handle_ui)
-
-   def _init_caco(self):
-      self.caco_dict = CacoDict()
-      for buddy in self.pudgy.get_buddies():
-         self.caco_dict.add_buddy(buddy)
-
-   def _init_poll(self):
-      self.pobj = select.poll()
-      self.pobj.register(sys.stdin, select.POLLIN)
-
-   def process_msg(self, buddy, message):
-      links = self.caco_dict.link_dict.get(buddy, set())
-      for link in links:
-         link.send_message(message)
-
-   def print_ui(self):
-      print
-
-      for i, buddy in enumerate(self.caco_dict.buddy_assoc):
-         print str(i+1) + ": " + unicode(buddy) + " [" + \
-             ", ".join(map(unicode, self.caco_dict.link_dict[buddy])) + \
-             "]"
-
-      print "> ", 
-      sys.stdout.flush()
-
-   def link(self, idx_from, idx_to):
-      self.caco_dict.link_buddy(self.caco_dict.buddy_assoc[idx_from-1],
-                                self.caco_dict.buddy_assoc[idx_to-1])
-
-   def unlink(self, idx_from, idx_to):
-      self.caco_dict.unlink_buddy(self.caco_dict.buddy_assoc[idx_from-1],
-                                  self.caco_dict.buddy_assoc[idx_to-1])
+   def _unlink(self, idx_from, idx_to):
+      self.graph.unlink_buddy(self.index_map[idx_from-1], self.index_map[idx_to-1])
 
    def handle_input(self, input_line):
       try:
          link_indices = map(int, input_line.split())
          link_from = link_indices[0]
          for link_to in link_indices[1:]:
-            if link_to < 0:
-               self.unlink(link_from, -link_to)
-            else:
-               self.link(link_from, link_to)
+            try:
+               if link_to < 0:  self._unlink(link_from, -link_to)
+               else:            self._link(link_from, link_to)
+            except LookupError:
+               pass
       except:
-         pass
+         print "-- a command is a space-separated list of whole numbers --\n"
 
+   def present_view(self):
+      for i, buddy in enumerate(self.index_map):
+         print str(i+1) + ": " + unicode(buddy) + " [" + \
+             ", ".join(map(unicode, self.graph.get_out_edges(buddy))) + \
+             "]"
+      print "> ",
+      sys.stdout.flush()
+
+   def _process_msg(self, buddy, message):
+      links = self.graph.get_out_edges(buddy)
+      for link in links: link.send_message(message)
+
+
+class Cacophony(object):
+   def __init__(self):
+      self.control = CacoController()
+
+      self.poller = select.poll()
+      self.poller.register(sys.stdin, select.POLLIN)
+
+      self.main_loop = glib.MainLoop()
+      glib.idle_add(self.handle_ui)
+   
    def handle_ui(self):
-      if (self.pobj.poll(1)):
+      if (self.poller.poll(1)):
          input_line = sys.stdin.readline()[:-1]
+         print
          if (input_line == "q"):
             self.main_loop.quit()
          else:
-            self.handle_input(input_line)
-            self.print_ui()
-      return True
+            self.control.handle_input(input_line)
+            self.control.present_view()
+      return True               # must return True! (see glib.idle_add)
 
-   def run(self):
-      self.main_loop.run()
+   def run(self): self.main_loop.run()
 
 if __name__ == "__main__":
    caco = Cacophony()
-   caco.print_ui()
+   caco.control.present_view()
    caco.run()

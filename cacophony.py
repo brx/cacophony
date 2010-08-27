@@ -1,8 +1,8 @@
 import sys
 import select
 import glib
-import dbus
-from dbus.mainloop.glib import DBusGMainLoop
+
+import pudgy
 
 class Buddy(object):
    def __init__(self, account_id, buddy_id, buddy_name, buddy_alias):
@@ -38,6 +38,8 @@ class CacoDict(object):
 
 class Cacophony(object):
    def __init__(self):
+      self.pudgy = pudgy.Pudgy()
+
       self._init_dbus()
       self._init_caco()
       self._init_poll()
@@ -48,10 +50,13 @@ class Cacophony(object):
       glib.idle_add(self.handle_ui)
 
    def _init_dbus(self):
-      DBusGMainLoop(set_as_default=True)
-      self.bus = dbus.SessionBus()
-      self.purple_object = self.bus.get_object("im.pidgin.purple.PurpleService", "/im/pidgin/purple/PurpleObject")
-      self.purple = dbus.Interface(self.purple_object, "im.pidgin.purple.PurpleInterface")
+      # DBusGMainLoop(set_as_default=True)
+      # self.bus = dbus.SessionBus()
+      # self.purple_object = self.bus.get_object("im.pidgin.purple.PurpleService", "/im/pidgin/purple/PurpleObject")
+      # self.purple = dbus.Interface(self.purple_object, "im.pidgin.purple.PurpleInterface")
+      self.bus = self.pudgy.bus
+      self.purple_object = self.pudgy.purple_object
+      self.purple = self.pudgy.purple
 
    def _init_caco(self):
       self.caco_dict = CacoDict()

@@ -4,35 +4,26 @@ import glib
 
 import pudgy
 
-class Buddy(object):
-   def __init__(self, account_id, buddy_id, buddy_name, buddy_alias):
-      self.account_id = account_id
-      self.buddy_id = buddy_id
-      self.buddy_name = unicode(buddy_name)
-      self.buddy_alias = unicode(buddy_alias)
-
-   def __str__(self): return self.buddy_alias
-
 class CacoDict(object):
    def __init__(self):
       self.link_dict = {}
       self.buddy_assoc = []
 
    def add_buddy(self, buddy):
-      self.link_dict[buddy.buddy_id] = set()
+      self.link_dict[buddy] = set()
       self.buddy_assoc.append(buddy)
 
    def link_buddy(self, buddy_from, buddy_to):
-      self.link_dict[buddy_from.buddy_id].add(buddy_to)
+      self.link_dict[buddy_from].add(buddy_to)
 
    def unlink_buddy(self, buddy_from, buddy_to):
-      self.link_dict[buddy_from.buddy_id].remove(buddy_to)
+      self.link_dict[buddy_from].remove(buddy_to)
 
    def __str__(self):
       ret = u""
       for i, buddy in enumerate(self.buddy_assoc):
          ret += unicode(i+1) + u": " + unicode(buddy) + u" [" + \
-             ", ".join(map(unicode, self.link_dict[buddy.buddy_id])) + \
+             u", ".join(map(unicode, self.link_dict[buddy])) + \
              u"]\n"
       return ret
 
@@ -40,48 +31,29 @@ class Cacophony(object):
    def __init__(self):
       self.pudgy = pudgy.Pudgy(self.process_msg)
 
-      self._init_dbus()
       self._init_caco()
       self._init_poll()
-
-      # self.purple.connect_to_signal("ReceivedImMsg", self.process_msg)
 
       self.main_loop = glib.MainLoop()
       glib.idle_add(self.handle_ui)
 
-   def _init_dbus(self):
-      # DBusGMainLoop(set_as_default=True)
-      # self.bus = dbus.SessionBus()
-      # self.purple_object = self.bus.get_object("im.pidgin.purple.PurpleService", "/im/pidgin/purple/PurpleObject")
-      # self.purple = dbus.Interface(self.purple_object, "im.pidgin.purple.PurpleInterface")
-      self.bus = self.pudgy.pcaller.bus
-      self.purple_object = self.pudgy.pcaller.purple_object
-      self.purple = self.pudgy.pcaller.purple
-
    def _init_caco(self):
       self.caco_dict = CacoDict()
-      for account_id in self.purple.PurpleAccountsGetAllActive():
-         for buddy_id in self.purple.PurpleFindBuddies(account_id, ""):
-            self.caco_dict.add_buddy(Buddy(account_id,
-                                           buddy_id,
-                                           self.purple.PurpleBuddyGetName(buddy_id),
-                                           self.purple.PurpleBuddyGetAlias(buddy_id)))
+      for buddy in self.pudgy.get_buddies():
+         self.caco_dict.add_buddy(buddy)
 
    def _init_poll(self):
       self.pobj = select.poll()
       self.pobj.register(sys.stdin, select.POLLIN)
 
-   def process_msg(self, account, sender, message, conversation, flags):
-      buddy_id = self.purple.PurpleFindBuddy(account, sender)
-      links = self.caco_dict.link_dict.get(buddy_id, set())
+   def process_msg(self, buddy, message):
+      links = self.caco_dict.link_dict.get(buddy, set())
       for link in links:
-         conv = self.purple.PurpleConversationNew(1, link.account_id, link.buddy_name)
-         im = self.purple.PurpleConvIm(conv)
-         self.purple.PurpleConvImSend(im, message)
+         link.send_message(message)
 
    def print_ui(self):
       print
-      print unicode(self.caco_dict) + "> ", 
+      print unicode(self.caco_dict) + u"> ", 
       sys.stdout.flush()
 
    def link(self, idx_from, idx_to):
@@ -106,7 +78,6 @@ class Cacophony(object):
 
    def handle_ui(self):
       if (self.pobj.poll(1)):
-         for v in self.pudgy._buddy_map.itervalues(): print v
          input_line = sys.stdin.readline()[:-1]
          if (input_line == "q"):
             self.main_loop.quit()

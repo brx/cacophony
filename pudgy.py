@@ -12,7 +12,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 class InitError(Exception): pass
 class CallError(Exception): pass
 
-class _PurpleCaller(object):
+class _PurpleCaller(object):    # wrapper class for great justice and own exceptions
    def __init__(self):
       try:
          self._bus = dbus.SessionBus()
@@ -56,15 +56,20 @@ class Pudgy(object):
       self.pcaller = _PurpleCaller()
       self.pcaller.connect_to_signal("ReceivedImMsg", self._process_recv_msg)
 
-   def _get_buddy(self, account_id, sender_name):
-      buddy_id = self.pcaller.PurpleFindBuddy(account_id, sender_name)
-      self._buddy_map.setdefault((account_id, sender_name),
-                                 Buddy(self.pcaller,
-                                       account_id,
-                                       buddy_id,
-                                       sender_name,
-                                       self.pcaller.PurpleBuddyGetAlias(buddy_id)))
+   def _get_buddy(self, account_id, buddy_name):
+      buddy_id = self.pcaller.PurpleFindBuddy(account_id, buddy_name)
+      buddy_alias = self.pcaller.PurpleBuddyGetAlias(buddy_id)
+      return self._buddy_map.setdefault((account_id, buddy_name),
+                                        Buddy(self.pcaller,
+                                              account_id, buddy_id,
+                                              buddy_name, buddy_alias))
+
+   def get_buddies(self):
+      for account_id in self.pcaller.PurpleAccountsGetAllActive():
+         for buddy_id in self.pcaller.PurpleFindBuddies(account_id, ""):
+            buddy_name = self.pcaller.PurpleBuddyGetName(buddy_id)
+            yield self._get_buddy(account_id, buddy_name)
 
    def _process_recv_msg(self, account_id, sender_name, message, conversation, flags):
       buddy = self._get_buddy(account_id, sender_name)
-      self._msg_handler(account_id, sender_name, message, conversation, flags)
+      self._msg_handler(buddy, message)

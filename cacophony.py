@@ -19,14 +19,6 @@ class CacoDict(object):
    def unlink_buddy(self, buddy_from, buddy_to):
       self.link_dict[buddy_from].remove(buddy_to)
 
-   def __str__(self):
-      ret = u""
-      for i, buddy in enumerate(self.buddy_assoc):
-         ret += unicode(i+1) + u": " + unicode(buddy) + u" [" + \
-             u", ".join(map(unicode, self.link_dict[buddy])) + \
-             u"]\n"
-      return ret
-
 class Cacophony(object):
    def __init__(self):
       self.pudgy = pudgy.Pudgy(self.process_msg)
@@ -53,7 +45,13 @@ class Cacophony(object):
 
    def print_ui(self):
       print
-      print unicode(self.caco_dict) + u"> ", 
+
+      for i, buddy in enumerate(self.caco_dict.buddy_assoc):
+         print str(i+1) + ": " + unicode(buddy) + " [" + \
+             ", ".join(map(unicode, self.caco_dict.link_dict[buddy])) + \
+             "]"
+
+      print "> ", 
       sys.stdout.flush()
 
    def link(self, idx_from, idx_to):

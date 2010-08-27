@@ -1,3 +1,10 @@
+# cacophony.py
+
+"""
+Tending to your IM social life on autopilot!
+This be the __main__ program entry. :)
+"""
+
 import sys
 import select
 import glib

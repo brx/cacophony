@@ -5,34 +5,34 @@
 This module provides a simple wrapper to the Pidgin DBus API for
 receiving and sending messages to IM contacts.
 """
-
+import sys
 import dbus
 import dbus.exceptions
 from dbus.mainloop.glib import DBusGMainLoop
 
-__author__ = "brx"
-__copyright__ = "Copyright 2010, brx"
-__license__ = "GPLv3"
+__author__ = 'brx'
+__copyright__ = 'Copyright 2010, brx'
+__license__ = 'GPLv3'
 
 class InitError(Exception): pass
-class CallError(Exception): pass
 
 class _PurpleCaller(object):    # wrapper class for great justice and own exceptions
    def __init__(self):
+      DBusGMainLoop(set_as_default=True)
       try:
-         self._bus = dbus.SessionBus()
-         self._purple_object = self._bus.get_object("im.pidgin.purple.PurpleService", "/im/pidgin/purple/PurpleObject")
-         self.purple = dbus.Interface(self._purple_object, "im.pidgin.purple.PurpleInterface")
+         self.bus = dbus.SessionBus()
+         self.purple = self.bus.get_object('im.pidgin.purple.PurpleService', '/im/pidgin/purple/PurpleObject')
       except:
          raise InitError()
 
    def __getattr__(self, attr):
       def wrapper(*args, **keys):
          try:
-            return getattr(self.purple, attr)(*args, **keys)
+            return getattr(self.purple, attr)(*args, dbus_interface='im.pidgin.purple.PurpleInterface', **keys)
          except dbus.exceptions.DBusException:
-            raise CallError()
-
+            sys.stderr.write("\nFailed to contact Pidgin! Terminating!\n") # ugh.. signal handlers :(
+            self.bus.close()
+            return 0            # confusion!!!!
       return wrapper
 
 class Buddy(object):
@@ -53,13 +53,11 @@ class Buddy(object):
 
 class Pudgy(object):
    def __init__(self, msg_handler):
-      DBusGMainLoop(set_as_default=True)
-
       self._msg_handler = msg_handler
       self._buddy_map = {}
 
       self.pcaller = _PurpleCaller()
-      self.pcaller.connect_to_signal("ReceivedImMsg", self._process_recv_msg)
+      self.pcaller.connect_to_signal('ReceivedImMsg', self._process_recv_msg)
 
    def _get_buddy(self, account_id, buddy_name):
       buddy_id = self.pcaller.PurpleFindBuddy(account_id, buddy_name)

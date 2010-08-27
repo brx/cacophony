@@ -33,9 +33,9 @@ converse with you!
 
 ### Dependencies ###
 
-- python >= 2.6
-- pygobject (tested with version 2.21.3)
-- dbus-python (tested with version 0.83.1)
+- [python](http://www.python.org/) >= 2.6
+- [pygobject](http://www.pygtk.org/) (tested with version 2.21.3)
+- [dbus-python](http://cgit.freedesktop.org/dbus/dbus-python/) (tested with version 0.83.1)
 
 ## Usage ##
 

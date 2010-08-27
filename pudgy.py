@@ -9,6 +9,10 @@ import dbus
 import dbus.exceptions
 from dbus.mainloop.glib import DBusGMainLoop
 
+__author__ = "brx"
+__copyright__ = "Copyright 2010, brx"
+__license__ = "GPLv3"
+
 class InitError(Exception): pass
 class CallError(Exception): pass
 

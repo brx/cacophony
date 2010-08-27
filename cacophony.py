@@ -6,16 +6,15 @@
 Tending to your IM social life on autopilot!
 This be the __main__ program entry. :)
 """
-
 import sys
 import select
 import glib
 
 import pudgy
 
-__author__ = "brx"
-__copyright__ = "Copyright 2010, brx"
-__license__ = "GPLv3"
+__author__ = 'brx'
+__copyright__ = 'Copyright 2010, brx'
+__license__ = 'GPLv3'
 
 class CacoGraph(object):
    def __init__(self, buddies = None):
@@ -56,10 +55,9 @@ class CacoController(object):
 
    def present_view(self):
       for i, buddy in enumerate(self.index_map):
-         print str(i+1) + ": " + unicode(buddy) + " [" + \
-             ", ".join(map(unicode, self.graph.get_out_edges(buddy))) + \
-             "]"
-      print "> ",
+         print "%d: %s [%s]" % (i+1, unicode(buddy),
+                                ', '.join(map(unicode, self.graph.get_out_edges(buddy))))
+      print '> ',
       sys.stdout.flush()
 
    def _process_msg(self, buddy, message):
@@ -81,16 +79,23 @@ class Cacophony(object):
       if (self.poller.poll(1)):
          input_line = sys.stdin.readline()[:-1]
          print
-         if (input_line == "q"):
-            self.main_loop.quit()
+         if (input_line == 'q'):
+            self.quit()
          else:
             self.control.handle_input(input_line)
             self.control.present_view()
       return True               # must return True! (see glib.idle_add)
 
    def run(self): self.main_loop.run()
+   def quit(self): self.main_loop.quit()
 
-if __name__ == "__main__":
-   caco = Cacophony()
-   caco.control.present_view()
-   caco.run()
+if __name__ == '__main__':
+   try:
+      caco = Cacophony()
+      caco.control.present_view()
+      caco.run()
+   except pudgy.InitError:
+      sys.stderr.write("Failed to start Cacophony! (Is Pidgin running?)\n")
+   finally:
+      try: caco.quit()
+      except NameError: pass

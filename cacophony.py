@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# 
+#
 # cacophony.py
 
 """
@@ -64,7 +64,6 @@ class CacoController(object):
       links = self.graph.get_out_edges(buddy)
       for link in links: link.send_message(message)
 
-
 class Cacophony(object):
    def __init__(self):
       self.control = CacoController()
@@ -74,7 +73,7 @@ class Cacophony(object):
 
       self.main_loop = glib.MainLoop()
       glib.idle_add(self.handle_ui)
-   
+
    def handle_ui(self):
       if (self.poller.poll(1)):
          input_line = sys.stdin.readline()[:-1]

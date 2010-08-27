@@ -49,7 +49,7 @@ Cacophony. Run it from its directory in a terminal like this:
     3: C []
     4: D []
     >
-    
+
 The above program output states that messages from **A** are routed to
 **B** and **C**. The prompt accepts input in the following form:
 

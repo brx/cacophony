@@ -38,13 +38,13 @@ class CacoDict(object):
 
 class Cacophony(object):
    def __init__(self):
-      self.pudgy = pudgy.Pudgy()
+      self.pudgy = pudgy.Pudgy(self.process_msg)
 
       self._init_dbus()
       self._init_caco()
       self._init_poll()
 
-      self.purple.connect_to_signal("ReceivedImMsg", self.process_msg)
+      # self.purple.connect_to_signal("ReceivedImMsg", self.process_msg)
 
       self.main_loop = glib.MainLoop()
       glib.idle_add(self.handle_ui)
@@ -54,9 +54,9 @@ class Cacophony(object):
       # self.bus = dbus.SessionBus()
       # self.purple_object = self.bus.get_object("im.pidgin.purple.PurpleService", "/im/pidgin/purple/PurpleObject")
       # self.purple = dbus.Interface(self.purple_object, "im.pidgin.purple.PurpleInterface")
-      self.bus = self.pudgy.bus
-      self.purple_object = self.pudgy.purple_object
-      self.purple = self.pudgy.purple
+      self.bus = self.pudgy.pcaller.bus
+      self.purple_object = self.pudgy.pcaller.purple_object
+      self.purple = self.pudgy.pcaller.purple
 
    def _init_caco(self):
       self.caco_dict = CacoDict()
@@ -106,6 +106,7 @@ class Cacophony(object):
 
    def handle_ui(self):
       if (self.pobj.poll(1)):
+         for v in self.pudgy._buddy_map.itervalues(): print v
          input_line = sys.stdin.readline()[:-1]
          if (input_line == "q"):
             self.main_loop.quit()

@@ -52,7 +52,7 @@ class Buddy(object):
       self.buddy_name = buddy_name
       self.buddy_alias = buddy_alias
 
-   def __str__(self): return self.buddy_alias
+   def __str__(self): return self.buddy_alias + "(%s)" % self.buddy_name
 
    def send_message(self, message):
       conv = self.pcaller.PurpleConversationNew(1, self.account_id, self.buddy_name)

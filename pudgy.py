@@ -35,6 +35,14 @@ class _PurpleCaller(object):    # wrapper class for great justice and own except
             return 0            # confusion!!!!
       return wrapper
 
+class Account(object):
+   def __init__(self, pcaller, account_id):
+      self.pcaller = pcaller
+      self.id = account_id
+
+      self.username = pcaller.PurpleAccountGetUsername(account_id)
+      self.protocol = pcaller.PurpleAccountGetProtocolName(account_id)
+
 class Buddy(object):
    def __init__(self, pcaller, account_id, buddy_id, buddy_name, buddy_alias):
       self.pcaller = pcaller

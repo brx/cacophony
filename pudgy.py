@@ -43,44 +43,51 @@ class Account(object):
       self.username = pcaller.PurpleAccountGetUsername(account_id)
       self.protocol = pcaller.PurpleAccountGetProtocolName(account_id)
 
+      self._init_buddies()
+
+   def _init_buddies(self):
+      self.buddies = {}
+      for buddy_id in self.pcaller.PurpleFindBuddies(self.id, ""):
+         buddy_name = self.pcaller.PurpleBuddyGetName(buddy_id)
+         self.buddies[buddy_name] = Buddy(self.pcaller, self, buddy_id, buddy_name)
+
 class Buddy(object):
-   def __init__(self, pcaller, account_id, buddy_id, buddy_name, buddy_alias):
+   def __init__(self, pcaller, account, buddy_id, buddy_name):
       self.pcaller = pcaller
+      self.account = account
 
-      self.account_id = account_id
-      self.buddy_id = buddy_id
-      self.buddy_name = buddy_name
-      self.buddy_alias = buddy_alias
+      self.id = buddy_id
+      self.name = buddy_name
+      self.alias = pcaller.PurpleBuddyGetAlias(buddy_id)
 
-   def __str__(self): return self.buddy_alias + "(%s)" % self.buddy_name
+   def __str__(self):
+      return self.alias + " (%s/%s)" % (self.name, self.account.protocol)
 
    def send_message(self, message):
-      conv = self.pcaller.PurpleConversationNew(1, self.account_id, self.buddy_name)
+      conv = self.pcaller.PurpleFindConversationWithAccount(1, self.name, self.account.id) or \
+          self.pcaller.PurpleConversationNew(1, self.account.id, self.name)
       im = self.pcaller.PurpleConvIm(conv)
       self.pcaller.PurpleConvImSend(im, message)
 
 class Pudgy(object):
    def __init__(self, msg_handler):
       self._msg_handler = msg_handler
-      self._buddy_map = {}
 
       self.pcaller = _PurpleCaller()
       self.pcaller.connect_to_signal('ReceivedImMsg', self._process_recv_msg)
 
-   def _get_buddy(self, account_id, buddy_name):
-      buddy_id = self.pcaller.PurpleFindBuddy(account_id, buddy_name)
-      buddy_alias = self.pcaller.PurpleBuddyGetAlias(buddy_id)
-      return self._buddy_map.setdefault((account_id, buddy_name),
-                                        Buddy(self.pcaller,
-                                              account_id, buddy_id,
-                                              buddy_name, buddy_alias))
+      self._init_accounts()
+
+   def _init_accounts(self):
+      self.accounts = {}
+      for account_id in self.pcaller.PurpleAccountsGetAllActive():
+         self.accounts[account_id] = Account(self.pcaller, account_id)
 
    def get_buddies(self):
-      for account_id in self.pcaller.PurpleAccountsGetAllActive():
-         for buddy_id in self.pcaller.PurpleFindBuddies(account_id, ""):
-            buddy_name = self.pcaller.PurpleBuddyGetName(buddy_id)
-            yield self._get_buddy(account_id, buddy_name)
+      for account in self.accounts.itervalues():
+         for buddy in account.buddies.itervalues():
+            yield buddy
 
    def _process_recv_msg(self, account_id, sender_name, message, conversation, flags):
-      buddy = self._get_buddy(account_id, sender_name)
-      self._msg_handler(buddy, message)
+      buddy = self.accounts[account_id].buddies.get(sender_name, None)
+      if buddy: self._msg_handler(buddy, message)

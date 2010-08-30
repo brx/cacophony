@@ -48,16 +48,19 @@ class Account(object):
    def _init_buddies(self):
       self.buddies = {}
       for buddy_id in self.pcaller.PurpleFindBuddies(self.id, ""):
-         buddy_name = self.pcaller.PurpleBuddyGetName(buddy_id)
-         self.buddies[buddy_name] = Buddy(self.pcaller, self, buddy_id, buddy_name)
+         self.buddies[buddy_id] = Buddy(self.pcaller, self, buddy_id)
+
+   def get_buddy_by_name(self, buddy_name):
+      buddy_id = self.pcaller.PurpleFindBuddy(self.id, buddy_name)
+      return self.buddies.get(buddy_id, None)
 
 class Buddy(object):
-   def __init__(self, pcaller, account, buddy_id, buddy_name):
+   def __init__(self, pcaller, account, buddy_id):
       self.pcaller = pcaller
       self.account = account
 
       self.id = buddy_id
-      self.name = buddy_name
+      self.name = pcaller.PurpleBuddyGetName(buddy_id)
       self.alias = pcaller.PurpleBuddyGetAlias(buddy_id)
 
    def __str__(self):
@@ -89,5 +92,5 @@ class Pudgy(object):
             yield buddy
 
    def _process_recv_msg(self, account_id, sender_name, message, conversation, flags):
-      buddy = self.accounts[account_id].buddies.get(sender_name, None)
+      buddy = self.accounts[account_id].get_buddy_by_name(sender_name)
       if buddy: self._msg_handler(buddy, message)

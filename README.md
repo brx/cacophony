@@ -67,6 +67,4 @@ This should be self-explanatory. Now have fun!
 
 ## License ##
 
-Copyright (C) 2010 brx
-
 Distributed under the GPLv3. See COPYING.
